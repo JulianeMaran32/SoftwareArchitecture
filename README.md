@@ -69,4 +69,4 @@ Este é um projeto que visa o aprendizado e a colaboração. Sugestões, discuss
 
 ## Licença
 
-Este repositório está licenciado sob a (Apache 2.0)[LICENSE].
+Este repositório está licenciado sob a [Apache License](LICENSE).
