@@ -40,7 +40,7 @@ O repositório continuará crescendo para incluir implementações dos seguintes
 
 ### 1. PetStore User Service (CQRS & DDD)
 
-Este projeto implementa a parte de gerenciamento de usuários (`/user`) da especificação (Swagger Petstore OpenAPI 3.0)[https://editor.swagger.io/]. Ele serve como um exemplo prático da aplicação dos padrões CQRS e DDD em um contexto de microsserviços.
+Este projeto implementa a parte de gerenciamento de usuários (`/user`) da especificação [Swagger Petstore OpenAPI 3.0](https://editor.swagger.io/). Ele serve como um exemplo prático da aplicação dos padrões CQRS e DDD em um contexto de microsserviços.
 
 * **Padrões Demonstrados:** Microsserviços, CQRS, DDD.
 * **Tecnologias:** Java 21, Spring Boot 3.5.3, Elasticsearch, Docker.
