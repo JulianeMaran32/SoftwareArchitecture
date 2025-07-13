@@ -5,8 +5,24 @@ package com.juhmaran.stockeventsourcing.domain.command;
  *
  * @since 13/07/2025
  */
-public class ProductCommands {
+public final class ProductCommands {
 
-  // TODO: Implementar funcionalidades da classe ProductCommands
+  private ProductCommands() {
+  }
+
+  public record AddProductStockCommand(
+    String sku,
+    String name,
+    String color,
+    String material,
+    int initialQuantity
+  ) {
+  }
+
+  public record ReserveProductCommand(String sku, int quantity) {
+  }
+
+  public record SellProductCommand(String sku, int quantity) {
+  }
 
 }
