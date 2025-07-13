@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false # Desabilita segurança para ambiente de dev
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - stock-network
+
+  app:
+    build: .
+    container_name: stock-app
+    depends_on:
+      - elasticsearch
+    ports:
+      - "8081:8081"
+    environment:
+      # Sobrescreve a configuração do application.yml para apontar para o container do ES
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+    networks:
+      - stock-network
+
+networks:
+  stock-network:
+    driver: bridge
