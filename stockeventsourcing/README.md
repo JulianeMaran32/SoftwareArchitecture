@@ -1,271 +1,311 @@
 # Stock Event Sourcing
 
-Implemente uma aplicação que utilize event sourcing para gerenciar estoque de produto, em que um produto possui os
-seguintes atributos:
+Este projeto é uma aplicação para gerenciamento de estoque de produtos, desenvolvida como uma demonstração prática dos
+padrões arquiteturais **Event Sourcing** e **CQRS (Command Query Responsibility Segregation)**.
 
-- SKU
-- Nome
-- Cor
-- Material
+## Descrição da Arquitetura
 
-No estoque, ele pode:
+O principal objetivo deste projeto é explorar uma arquitetura robusta e escalável, separando completamente as
+responsabilidades de escrita (comandos) e leitura (consultas).
 
-- Ter uma quantidade reservada
-- Ter uma quantidade disponível
-- Ter uma quantidade removida/vendida
+### Core Patterns
 
-A aplicação deve possuir endpoints para reservar, vender e adicionar produtos.
-Deve possuir também possuir endpoints para consulta: histórico de transações, quantidade disponível em estoque;
+* **Event Sourcing:** Em vez de armazenar o estado atual de um produto, a aplicação persiste uma sequência cronológica
+  de eventos imutáveis que descrevem cada alteração ocorrida (ex: `ProductAdded`, `ProductReserved`, `ProductSold`). O
+  estado de um produto pode ser reconstruído a qualquer momento, reproduzindo seus eventos históricos. Isso fornece uma
+  trilha de auditoria completa e poderosa.
+* **CQRS (Command Query Responsibility Segregation):** A aplicação possui dois modelos distintos:
+    1. **Write Model (Lado do Comando):** Responsável por receber comandos, validar regras de negócio complexas e gerar
+       eventos. O coração deste modelo é o `ProductAggregate` que garante a consistência das operações. Os eventos são
+       persistidos em um **Event Store**.
+    2. **Read Model (Lado da Consulta):** Responsável por fornecer dados otimizados para consulta. Um processo
+       assíncrono (Projeção) escuta os eventos gerados pelo Write Model e atualiza uma visão desnormalizada dos dados.
+       Esta visão (`ProductView`) é projetada para responder rapidamente às consultas da UI ou de outros serviços.
 
-### Banco de Dados (opções)
+### Fluxo de Dados
 
-Utilizar o MELHOR banco de dados para aplicação
+1. Um cliente envia um comando para a API (ex: `Reservar Produto).
+2. O **Command Controller** direciona o comando para o **Command Service**.
+3. O serviço carrega o histórico de eventos do **Event Store** para reconstruir o estado atual do `ProductAggregate`.
+4. O `ProductAggregate` executa a lógica de negócio e, se for bem-sucedido, gera um novo evento (ex:
+   `ProductReservedEvent`).
+5. O novo evento é salvo no **Event Store** e publicado internamente na aplicação.
+6. Um **Projection Listener** captura o evento publicado.
+7. A projeção atualiza o **Read Model** (um documento no Elasticsearch) com as novas informações.
+8. Quando um cliente solicita dados (ex: `Consultar Estoque`), a consulta é direcionada ao **Query Controller**, que
+   busca a informação diretamente do **Read Model** otimizado, sem sobrecarregar o modelo de escrita.
 
-- OPÇÃO 1: NoSQL (Elastic) para escrita e NoSQL (Elastic) para leitura (réplica)
-- OPÇÃO 2: SQL (H2) para escrita e NoSQL (Elastic) para leitura (réplica)
-- OPÇÃO 3: OU outra opção que julgar mais adequada
+### Stack de Tecnologias
 
-### Tecnologias:
-
-- Java 21
-- Spring Boot 3.5.0 (application.yml)
-- Dockerfile e Docker composse
-- Build: Maven
-- Dependências:
-    - Developer Tools: Lombok, Spring Boot DevTools, Spring Configuration Processor
-    - Web: Spring WEbr
-    - OPS: Spring Boot Actuator
-    - Outros: MapStruct
-
----
-
-## Estrutura de Pastas/Pacotes
-
-A estrutura de pacotes e pastas é a espinha dorsal de um projeto bem organizado. Para uma aplicação com Event Sourcing e
-CQRS, uma estrutura bem definida não é apenas uma boa prática, é **essencial** para manter a clareza, a separação de
-responsabilidades e a manutenibilidade.
-
-A seguir, apresento duas abordagens populares, com uma recomendação clara da melhor opção para o cenário do desafio
-proposto, explicando o propósito de cada pacote.
-
-### Abordagem Recomendada: Híbrida (Técnica + por Domínio/CQRS)
-
-Esta é a estrutura mais eficaz e comum para projetos Spring Boot que implementam padrões como DDD e CQRS. Ela organiza o
-código em camadas técnicas no nível superior, mas agrupa a lógica de negócio principal de acordo com os conceitos do
-Event Sourcing.
-
-**Vantagens**
-
-* **Clareza Arquitetural:** A estrutura do código reflete diretamente o padrão CQRS (separação de Comando e Consulta).
-* **Baixo Acoplamento:** O `domain` principal permanece isolado de frameworks (Spring, JPA, etc.).
-* **Escalabilidade:** É fácil adicionar novos agregados ou contextos de negócio sem afetar os existentes.
-* **Intuitiva:** Desenvolvedores familiarizados com Spring se sentirão em casa, ao mesmo tempo que a intenção do
-  design (CQRS/ES) é óbvia.
-
-**Estrutura de Pacotes Detalhada**
-
-```text
-src/main/java/com/example/stockeventsourcing/
-│
-├── StockEventSourcingApplication.java   // Ponto de entrada da aplicação Spring Boot
-├── config/                              // Configurações da aplicação (ex: Beans do Elasticsearch, Segurança)
-├── controller/                          // Camada da API REST (Endpoints)
-│   ├── dto/                             // Data Transfer Objects (Records para requisições e respostas)
-│   │   └── ProductDtos.java
-│   └── mapper/                          // Mapeadores (MapStruct) para converter DTOs para Comandos/Views
-│   │   └── ProductMapper.java
-│   └── ProductStockController.java      // Controlador REST para as operações de estoque
-├── domain/                              // O CORAÇÃO DA APLICAÇÃO: Lógica de negócio pura
-│   ├── aggregate/                       // Agregados - Entidades que garantem a consistência das transações
-│   │   └── ProductAggregate.java
-│   ├── command/                         // Objetos que representam a intenção de mudar o estado (imperativo)
-│   │   └── ProductCommands.java         // (ex: AddProductStockCommand, ReserveProductCommand)
-│   └── event/                           // Objetos que representam um fato que ocorreu no passado (imutável)
-│       └── ProductEvents.java           // (ex: ProductStockAddedEvent, ProductReservedEvent)
-├── exception/                           // Classes de exceção customizadas e o handler global
-│   ├── GlobalExceptionHandler.java
-│   └── ProductNotFoundException.java
-│   └── InsufficientStockException.java
-├── projection/                          // Lógica responsável por construir e atualizar o Read Model
-│   └── InventoryProjectionHandler.java  // "Ouve" os eventos e atualiza a view no Elasticsearch
-├── repository/                          // Abstração da camada de persistência
-│   ├── eventstore/                      // Repositório para o WRITE MODEL (log de eventos)
-│   │   ├── EventStoreEntity.java
-│   │   └── EventStoreRepository.java    // Interface Spring Data JPA
-│   └── view/                            // Repositório para o READ MODEL (visão de consulta)
-│       └── ProductInventoryViewRepository.java // Interface Spring Data Elasticsearch
-├── service/                             // Camada de orquestração (coordena o fluxo de trabalho)
-│   ├── command/                         // Serviços para o lado da ESCRITA (Command Side)
-│   │   └── ProductCommandService.java   // Orquestra a execução de comandos
-│   └── query/                           // Serviços para o lado da LEITURA (Query Side)
-│       └── ProductQueryService.java     // Orquestra a execução de consultas
-└── view/                                // Entidades do READ MODEL (as projeções)
-    └── ProductInventoryView.java        // O documento que será salvo no Elasticsearch
-```
+| Responsabilidade          | Tecnologia Utilizada (`dev` profile) | Tecnologia Utilizada (`prod` profile) |
+|---------------------------|--------------------------------------|---------------------------------------|
+| **Linguagem / Framework** | Java 21 / Spring Boot 3.5.3          | Java 21 / Spring Boot 3.5.3           |
+| **Event Store (Write)**   | H2 Database (In-Memory)              | PostgreSQL                            |
+| **Read Model (Query)**    | Elasticsearch                        | Elasticsearch                         |
+| **Containerização**       | Docker / Docker Compose              | Docker / Docker Compose               |
+| **Visualização (Read)**   | Kibana                               | Kibana                                |
 
 ---
 
-### Resumo e Conclusão
+## Como Executar o Projeto
 
-A **Abordagem Recomendada (Híbrida)** é superior para este projeto. Ela equilibra perfeitamente a organização técnica
-padrão do Spring com a clareza conceitual exigida pela arquitetura de Event Sourcing e CQRS.
+**Pré-requisitos:**
 
-Aqui está um resumo de como os conceitos do padrão se mapeiam para a estrutura de pacotes recomendada:
+* Docker e Docker Compose
+* Java 21 e Maven (apenas para execução local fora do Docker)
 
-| Conceito CQRS/ES              | Pacote na Estrutura Recomendada | Propósito                                                                     |
-|-------------------------------|---------------------------------|-------------------------------------------------------------------------------|
-| **Comando (Command)**         | `domain.command`                | Define a intenção de mutação (ex: "Reserve 10 itens").                        |
-| **Agregado (Aggregate)**      | `domain.aggregate`              | Valida comandos e produz eventos. É o guardião da consistência.               |
-| **Evento (Event)**            | `domain.event`                  | Representa um fato que aconteceu. A fonte da verdade.                         |
-| **Serviço de Comando**        | `service.command`               | Orquestra o fluxo: carrega o agregado, passa o comando, salva os eventos.     |
-| **Event Store (Write Model)** | `repository.eventstore`         | Persiste e recupera a sequência de eventos (usando JPA/H2).                   |
-| **Projeção (Read Model)**     | `view` e `projection`           | Cria e mantém a `ProductInventoryView` (o estado atual) a partir dos eventos. |
-| **Serviço de Consulta**       | `service.query`                 | Fornece acesso rápido e eficiente ao Read Model.                              |
-| **Repositório de Consulta**   | `repository.view`               | Acessa o Read Model (usando Elasticsearch).                                   |
-| **API/Controlador**           | `controller`                    | Expõe os endpoints para os clientes interagirem com os serviços.              |
+### 1. Modo de Produção (Recomendado)
 
-Adotar esta estrutura desde o início tornará o desenvolvimento muito mais lógico e organizado.
+Este modo utiliza a pilha completa: **PostgreSQL** (Event Store) + **Elasticsearch** (Read Model) + **Kibana**.
 
----
-
-## Exemplos de Requisições (cURL)
-
-### 1. Adicionar um Novo Produto ao Estoque
-
-**Request**
-
-```
-curl --location 'http://localhost:8081/products' \
---header 'Content-Type: application/json' \
---data '{
-  "sku": "TSHIRT-001",
-  "name": "T-Shirt Básica",
-  "color": "Branco",
-  "material": "Algodão",
-  "initialQuantity": 100
-}'
+```bash
+# Na raiz do projeto, execute:
+docker-compose up --build
 ```
 
-**Response**
+Após a inicialização, os serviços estarão disponíveis nos seguintes endereços:
 
-- Status HTTP: 201 Created (Corpo vazio)
+* **API da Aplicação**: `http://localhost:8081`
+* **Kibana**: `http://localhost:5601`
+* **Elasticsearch**: `http://localhost:9200`
+* **PostgreSQL**: `localhost:5432`
 
-### 2. Reservar 10 unidades do produto
+### 2. Modo de Desenvolvimento
 
-**Request**
+Este modo utiliza **H2 em memória** (Event Store), sendo mais leve para desenvolvimento.
 
-```
-curl -X POST http://localhost:8081/products/TSHIRT-001/reserve \
--H "Content-Type: application/json" \
--d '{
-  "quantity": 10
-}'
-```
-
-**Response**
-
-- Status HTTP: 200 OK (Corpo vazio)
-
-### 3. Vender 5 unidades (previamente reservadas)
-
-**Request**
-
-```
-curl -X POST http://localhost:8081/products/TSHIRT-001/sell \
--H "Content-Type: application/json" \
--d '{
-  "quantity": 5
-}'
+```bash
+# Na raiz do projeto, execute:
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-**Response**
+A aplicação e o Kibana estarão disponíveis nas mesmas portas. O PostgreSQL não será iniciado.
 
-- Status HTTP: 200 OK (Corpo vazio)
+## Exemplos de Uso (Postman Collection)
 
-### 4. Consultar o Estoque Atual
+Você pode importar a coleção abaixo no Postman para testar a API facilmente.
 
-**Request**
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://god.postman.co/run-collection/9f5c2a1b948f936c5352?action=collection%2Fimport)
 
-```
-curl -X GET http://localhost:8081/products/TSHIRT-001
-```
-
-**Response**
-
-- Status HTTP: 200 OK
+<details>
+<summary>Ou copie o JSON da coleção aqui</summary>
 
 ```json
 {
-  "sku": "TSHIRT-001",
-  "name": "T-Shirt Básica",
-  "color": "Branco",
-  "material": "Algodão",
-  "availableQuantity": 90,
-  "reservedQuantity": 5,
-  "soldQuantity": 5,
-  "lastModified": "2024-05-21T18:30:00Z"
+  "info": {
+    "_postman_id": "f4e1f72d-1234-5678-abcd-c3a9f0d4b2e1",
+    "name": "Stock Event Sourcing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Commands",
+      "item": [
+        {
+          "name": "1. Add Product",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Classic Sneaker\",\n  \"color\": \"White\",\n  \"material\": \"Leather\",\n  \"quantity\": 100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/products/SHOE-001/add",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "SHOE-001",
+                "add"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2. Reserve Product",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"quantity\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/products/SHOE-001/reserve",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "SHOE-001",
+                "reserve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Sell Product",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"quantity\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/products/SHOE-001/sell",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "SHOE-001",
+                "sell"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Queries",
+      "item": [
+        {
+          "name": "Get Product Stock",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/v1/products/SHOE-001/stock",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "SHOE-001",
+                "stock"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8081/api/v1/products/SHOE-001/history",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8081",
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "SHOE-001",
+                "history"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
 }
 ```
 
-### 5. Consultar o Histórico de Transações
+</details>
 
-**Request**
+## Explorando o Read Model (Elasticsearch)
 
+Você pode consultar o Read Model diretamente no Elasticsearch ou através do Kibana.
+
+### 1. Configurar o Kibana
+
+1. Acesse `http://localhost:5601`.
+2. No menu, vá para **Management > Stack Management**.
+3. Clique em **Data Views** e depois em **Create data view**.
+4. Use `products` como o **Index pattern** e salve.
+5. Agora, na seção **Discover**, você pode explorar visualmente todos os dados do estoque.
+
+### 2. Consultas Diretas no Elasticsearch
+
+Você pode usar `curl` ou qualquer cliente REST para consultar o Elasticsearch na porta `9200`.
+
+**Buscar todos os produtos:**
+
+```bash
+curl -X GET "http://localhost:9200/products/_search?pretty"
 ```
-curl -X GET http://localhost:8081/products/TSHIRT-001/history
+
+**Buscar um produto específico pelo SKU:**
+
+```bash
+curl -X GET "http://localhost:9200/products/_doc/SHOE-001?pretty"
 ```
 
-**Response**
+**Busca avançada (ex: todos os produtos da cor "White"):**
 
-- Status HTTP: 200 OK
-
-```json
-[
-  {
-    "eventType": "ProductStockAddedEvent",
-    "version": 1,
-    "eventData": "{\"quantity\":100,\"name\":\"T-Shirt Básica\",\"color\":\"Branco\",\"material\":\"Algodão\"}",
-    "timestamp": "2024-05-21T18:25:00Z"
-  },
-  {
-    "eventType": "ProductReservedEvent",
-    "version": 2,
-    "eventData": "{\"quantity\":10}",
-    "timestamp": "2024-05-21T18:28:00Z"
-  },
-  {
-    "eventType": "ProductSoldEvent",
-    "version": 3,
-    "eventData": "{\"quantity\":5}",
-    "timestamp": "2024-05-21T18:30:00Z"
+```bash
+curl -X GET "http://localhost:9200/products/_search?pretty" -H 'Content-Type: application/json' -d'
+{
+  "query": {
+    "match": {
+      "color": "White"
+    }
   }
-]
+}
+'
 ```
-
----
-
-## Saiba Mais
-
-### Logs (`application.yml` e com `@Slf4j`)
-
-Os logs são fundamentais para a manutenibilidade e observabilidade de qualquer aplicação.
-
-O Spring Boot utiliza o Logback como implementação de logging padrão. Podemos configurá-lo de forma extensiva
-diretamente no `application.yml`.
-
-**Boas Práticas de Níveis de Log**
-
-* `ERROR`: Falhas críticas que impedem a operação de continuar (ex: falha de conexão com DB, exceções não tratadas).
-* `WARN`: Situações inesperadas que não quebram a aplicação, mas indicam um problema potencial (ex: API externa lenta,
-  configuração obsoleta).
-* `INFO`: Eventos importantes do fluxo de negócio (ex: "Comando de venda recebido para SKU X", "Produto Y criado com
-  sucesso").
-* `DEBUG`: Informações detalhadas para depuração do fluxo técnico (ex: "Entrando no método X", "Estado do agregado antes
-  de aplicar o evento", "Payload do evento").
-* `TRACE`: O nível mais detalhado, para informações de baixíssimo nível (ex: valores de parâmetros de queries SQL).
-
----
-
-## Referências
-
-* [Using MapStruct With Lombok - Baeldung](https://www.baeldung.com/java-mapstruct-lombok)
