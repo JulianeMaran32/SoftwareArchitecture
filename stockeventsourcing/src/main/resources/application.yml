@@ -1,45 +1,5 @@
 server:
   port: 8081
-
 spring:
   application:
     name: stockeventsourcing
-
-  # --- Configuração do Write Model (Event Store) ---
-  datasource:
-    url: jdbc:h2:mem:eventstore_db;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate:
-      ddl-auto: update # Em produção usar 'validate' e flyway/liquibase
-    show-sql: false
-
-  # --- Configuração do Read Model (Projections) ---
-  elasticsearch:
-    uris: http://localhost:9200
-#    username: elastic
-#    password: "elastic"
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-details: ALWAYS
-
-# --- SEÇÃO DE LOGGING DETALHADA ---
-logging:
-  level:
-    root: info
-    web: info
-    sql: debug
-    com.juhmaran.stockeventsourcing: debug
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %clr(%5p) --- [%15.15t] %clr(%-40.40logger{39}){cyan} : %m%n"
-  file:
-    name: logs/stock-event-sourcing.log

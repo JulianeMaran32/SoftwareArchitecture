@@ -1,72 +1,97 @@
-# Software Architecture
+<div align="center">
+  <h1>Software Architecture Showcase</h1>
+  <p>
+    Um laboratório prático e em constante evolução para a exploração e 
+    implementação de padrões avançados de arquitetura de software.
+  </p>
+</div>
 
-Bem-vindo(a) a este repositório dedicado à exploração e implementação de padrões avançados de arquitetura de software. O objetivo aqui é servir como um **laboratório prático e em constante evolução**, demonstrando a aplicação de conceitos-chave em cenários do mundo real.
-
-Este é um _showcase_ vivo, projetado para crescer à medida que novos padrões e desafios emergem no cenário da engenharia de software. Cada projeto é autocontido, focado em resolver um problema específico e construído sobre uma pilha de tecnologia moderna e robusta.
-
-## Filosofia
-
-Acreditamos que a melhor forma de aprender e dominar arquitetura de software é através da prática. Este repositório serve para:
-
-* **Demonstrar Implementações:** Fornecer exemplos de código claros e funcionais para padrões complexos.
-* **Analisar Trade-offs:** Explorar diferentes abordagens para o mesmo problema, discutindo suas vantagens e desvantagens.
-* **Criar um Guia de Referência:** Servir como um ponto de partida para arquitetos e desenvolvedores que buscam implementar essas soluções em seus próprios projetos.
+<div align="center">
+  <img src="https://img.shields.io/badge/Java-21-blue?logo=java&logoColor=white" alt="Java 21">
+  <img src="https://img.shields.io/badge/Spring_Boot-3.x-brightgreen?logo=spring&logoColor=white" alt="Spring Boot 3.x">
+  <img src="https://img.shields.io/badge/Docker-gray?logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Elasticsearch-blue?logo=elasticsearch&logoColor=white" alt="Elasticsearch">
+  <img src="https://img.shields.io/badge/License-Apache_2.0-yellow.svg" alt="License">
+</div>
 
 ---
 
-## Padrões Arquitetônicos
+## Sobre Este Repositório
 
-Esta seção cataloga os padrões que exploramos ou planejamos explorar.
+Bem-vindo(a) a este repositório dedicado à demonstração de padrões avançados de arquitetura. O objetivo aqui é servir
+como um **_showcase_ vivo e um guia de referência**, onde conceitos complexos são transformados em código funcional e
+bem documentado.
 
-### Padrões Implementados
+Acreditamos que a melhor forma de dominar a arquitetura de software é através da prática. Por isso, este espaço serve
+para:
 
-* **Microsserviços (MS):** Uma abordagem arquitetônica que estrutura uma aplicação com uma coleção de serviços fracamente acoplados, permitindo escalabilidade e desenvolvimento independentes.
-* **CQRS (Command Query Responsibility Segregation):** Separação das operações de escrita (Commands) das de leitura (Queries), permitindo otimizações independentes de performance, escalabilidade e segurança para cada lado.
-* **DDD (Domain-Driven Design):** Uma abordagem que foca em modelar o software para corresponder a um domínio de negócios, utilizando uma linguagem ubíqua e modelos ricos para resolver problemas complexos.
-* **Event Sourcing (ES):** Persistência do estado de uma aplicação como uma sequência de eventos imutáveis. Em vez de salvar o estado final, salvamos todas as transações que levaram a ele, proporcionando um log de auditoria completo e a capacidade de reconstruir estados passados.
+* **Demonstrar Implementações:** Fornecer exemplos claros de padrões como CQRS, Event Sourcing e DDD.
+* **Analisar Trade-offs:** Explorar diferentes abordagens para o mesmo problema.
+* **Criar um Guia de Referência:** Servir como ponto de partida para arquitetos e desenvolvedores.
 
-### Padrões no Roadmap
+## Base de Conhecimento (Wiki)
 
-O repositório continuará crescendo para incluir implementações dos seguintes padrões:
+Para uma exploração aprofundada dos conceitos teóricos, diagramas e discussões de design, visite nossa Wiki. Ela é a
+base de conhecimento que complementa o código-fonte.
 
-* **Padrão Saga:** Para gerenciar a consistência de dados em transações distribuídas que abrangem múltiplos microsserviços. Serão exploradas ambas as abordagens: **Coreografia** (baseada em eventos) e **Orquestração** (com um coordenador central) 
-* **Outbox Pattern:** Garante a entrega atômica e confiável de mensagens/eventos para um _message broker_, mesmo em caso de falhas, prevenindo a inconsistência entre o banco de dados do serviço e o estado propagado para o resto do sistema. 
-* **API Gateway:** Fornece um ponto de entrada único e unificado para um conjunto de microsserviços, simplificando a comunicação para os clientes e centralizando responsabilidades como autenticação, _rate limiting_ e roteamento. 
-* **Circuit Breaker:** Aumenta a resiliência do sistema, impedindo que um serviço faça chamadas repetidas para outro serviço que já demonstrou estar falhando, evitando a propagação de falhas em cascata. 
+<div align="center">
+  <h3>
+    <a href="https://github.com/JulianeMaran32/SoftwareArchitecture/wiki">
+      ➡️ Explore a Wiki para entender o "porquê" por trás do código
+    </a>
+  </h3>
+</div>
+
+Nossa Wiki está organizada nas seguintes categorias:
+
+| Categoria                  | Tópicos Abordados                                                                                                                                                                                                                                                                                                                                                                                                          |
+|:---------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Padrões de Arquitetura** | [DDD](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki/DDD-(Domain-Driven-Design)), [Microsserviços](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki/Microservices-Architecture), [CQRS](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki/CQRS-(Command-Query-Responsibility-Segregation)), [Event Sourcing](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki/Event-Sourcing) |
+| **Tecnologias**            | [Elasticsearch](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki/Elasticsearch), [Kibana](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki/Kibana), [Docker](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki/Docker-and-Docker-Compose)                                                                                                                                                  |
+| **Guias e Práticas**       | [Boas Práticas de Git e GitHub](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki/Git-and-GitHub-Best-Practices), [Diagrama Geral da Arquitetura](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki/Visão-Geral-da-Arquitetura)                                                                                                                                                                        |
 
 ---
 
 ## Projetos de Referência
 
-### 1. PetStore User Service (CQRS & DDD)
+Cada projeto neste repositório é um microsserviço autocontido que implementa um conjunto específico de padrões e
+tecnologias.
 
-Este projeto implementa a parte de gerenciamento de usuários (`/user`) da especificação [Swagger Petstore OpenAPI 3.0](https://editor.swagger.io/). Ele serve como um exemplo prático da aplicação dos padrões CQRS e DDD em um contexto de microsserviços.
-
-* **Padrões Demonstrados:** Microsserviços, CQRS, DDD.
-* **Tecnologias:** Java 21, Spring Boot 3.5.3, Elasticsearch, Docker.
-* **Acessar o Projeto:** 
-   * [Clique aqui para ir ao diretório do User Service](https://github.com/JulianeMaran32/petstore)
-
-
-### 2. Gerenciamento de Estoque com Event Sourcing
-
-Esta aplicação demonstra o poder do **Event Sourcing** combinado com **CQRS** para gerenciar o estoque de um produto, um domínio onde o histórico de transações é tão importante quanto o estado atual.
-
-* **Padrões Demonstrados:** Microsserviços, Event Sourcing, CQRS.
-* **Tecnologias:** Utiliza **PostgreSQL** como Event Store (fonte da verdade), **Apache Kafka** como um event bus para comunicação assíncrona, e **Elasticsearch** para as projeções de leitura otimizadas.
-* **Acessar o Projeto:** 
-   * [Clique aqui para ir ao diretório do Sistema de Estoque](https://github.com/JulianeMaran32/SoftwareArchitecture)
+| Projeto                     | Descrição                                                                               | Padrões Demonstrados          | Link                                                         |
+|:----------------------------|:----------------------------------------------------------------------------------------|:------------------------------|:-------------------------------------------------------------|
+| **User Service (PetStore)** | Implementação da API de usuários do PetStore, focada na separação de responsabilidades. | `DDD` `CQRS` `Microsserviços` | [Acessar Código](https://github.com/JulianeMaran32/petstore) |
+| **Stock Event Sourcing**    | Gerenciamento de estoque, onde cada transação é um evento imutável.                     | `Event Sourcing` `CQRS` `DDD` | [Acessar Código](./stockeventsourcing/)                      |
 
 ---
 
-## Como Executar os Projetos
+## Roadmap de Padrões
 
-Cada projeto contém seu próprio `README.md` com instruções detalhadas de configuração, build e execução. Em geral, todos os projetos são containerizados com **Docker** e podem ser iniciados com um único comando `docker compose up --build` a partir de seu respectivo diretório.
+Este repositório está em constante evolução. Os próximos padrões a serem explorados e implementados incluem:
+
+* **Padrão Saga:** Para gerenciar a consistência de dados em transações distribuídas (abordagens de Coreografia e
+  Orquestração).
+* **Outbox Pattern:** Para garantir a entrega atômica de eventos, prevenindo inconsistência entre o banco de dados e o
+  message broker.
+* **API Gateway:** Para fornecer um ponto de entrada único e unificado para os microsserviços.
+* **Circuit Breaker:** Para aumentar a resiliência do sistema, impedindo a propagação de falhas em cascata.
+
+---
+
+## Como Executar
+
+Cada projeto é containerizado com **Docker** e **Docker Compose**, garantindo um ambiente de desenvolvimento simples e
+reprodutível. As instruções detalhadas de `build` e `run` estão no `README.md` de cada diretório de projeto.
+
+Em geral, o processo é:
+
+1. Navegue até o diretório do projeto desejado (ex: `cd stockeventsourcing`).
+2. Execute o comando: `docker compose up --build`.
 
 ## Como Contribuir
 
-Este é um projeto que visa o aprendizado e a colaboração. Sugestões, discussões através de _Issues_ e contribuições via _Pull Requests_ são muito bem-vindas.
+Contribuições são a alma de projetos de código aberto e aprendizado. Sugestões, discussões através de _Issues_ e
+melhorias via _Pull Requests_ são muito bem-vindas!
 
 ## Licença
 
-Este repositório está licenciado sob a [Apache License](LICENSE).
+Este projeto está licenciado sob a [Apache License 2.0](./LICENSE).
