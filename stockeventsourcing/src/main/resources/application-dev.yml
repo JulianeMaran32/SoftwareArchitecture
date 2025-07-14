@@ -1,0 +1,18 @@
+# Perfil de Desenvolvimento
+spring:
+  # --- Event Store: H2 Database ---
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  datasource:
+    url: jdbc:h2:mem:event_store;DB_CLOSE_DELAY=-1
+    username: 'sa'
+    password: ''
+    driver-class-name: org.h2.Driver
+  # --- Read Model: Elasticsearch ---
+  elasticsearch:
+    uris: http://localhost:9200

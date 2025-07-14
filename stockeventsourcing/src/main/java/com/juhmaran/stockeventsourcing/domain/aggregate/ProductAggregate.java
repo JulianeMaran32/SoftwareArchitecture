@@ -1,10 +1,12 @@
 package com.juhmaran.stockeventsourcing.domain.aggregate;
 
-import com.juhmaran.stockeventsourcing.domain.event.ProductEvent;
-import com.juhmaran.stockeventsourcing.domain.event.ProductEvents;
+import com.juhmaran.stockeventsourcing.domain.event.Event;
+import com.juhmaran.stockeventsourcing.domain.event.ProductAddedEvent;
+import com.juhmaran.stockeventsourcing.domain.event.ProductReservedEvent;
+import com.juhmaran.stockeventsourcing.domain.event.ProductSoldEvent;
 import com.juhmaran.stockeventsourcing.exception.InsufficientStockException;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,83 +17,96 @@ import java.util.List;
  * @since 13/07/2025
  */
 @Getter
-@Slf4j
+@NoArgsConstructor
 public class ProductAggregate {
 
   private String sku;
   private String name;
+  private String color;
+  private String material;
   private int availableQuantity;
   private int reservedQuantity;
   private int soldQuantity;
 
-  private final List<ProductEvent> uncommittedChanges = new ArrayList<>();
+  private final List<Event> uncommittedEvents = new ArrayList<>();
 
-  public static ProductAggregate rehydrate(List<ProductEvent> history) {
-    ProductAggregate aggregate = new ProductAggregate();
-    history.forEach(aggregate::apply);
-    return aggregate;
+  // Construtor para reconstruir o estado a partir de eventos
+  public ProductAggregate(String sku, List<Event> eventHistory) {
+    this.sku = sku;
+    eventHistory.forEach(this::applyChange);
   }
 
+  private void applyChange(Event event) {
+    if (event instanceof ProductAddedEvent e) {
+      apply(e);
+    }
+    if (event instanceof ProductReservedEvent e) {
+      apply(e);
+    }
+    if (event instanceof ProductSoldEvent e) {
+      apply(e);
+    }
+  }
+
+  private void applyNewChange(Event event) {
+    applyChange(event);
+    uncommittedEvents.add(event);
+  }
+
+  // ---- Métodos de negócio que geram eventos ----
   public void addProduct(String sku, String name, String color, String material, int quantity) {
-    if (this.sku != null) {
-      throw new IllegalStateException("Product " + sku + " already exists.");
-    }
     if (quantity <= 0) {
-      throw new IllegalArgumentException("Initial quantity must be positive.");
+      throw new IllegalArgumentException("Quantity must be positive.");
     }
-    raiseEvent(new ProductEvents.ProductAddedToStockEvent(sku, name, color, material, quantity));
+    var event = ProductAddedEvent.builder()
+      .aggregateId(sku)
+      .name(name)
+      .color(color)
+      .material(material)
+      .quantity(quantity)
+      .build();
+    applyNewChange(event);
   }
 
-  public void reserveStock(int quantityToReserve) {
-    if (quantityToReserve <= 0) {
-      throw new IllegalArgumentException("Quantity to reserve must be positive.");
+  public void reserveProduct(int quantity) {
+    if (quantity > this.availableQuantity) {
+      throw new InsufficientStockException("Not enough available stock to reserve.");
     }
-    if (availableQuantity < quantityToReserve) {
-      throw new InsufficientStockException("Not enough available stock for SKU " + sku + ". Requested: " +
-        quantityToReserve + ", Available: " + availableQuantity);
-    }
-    raiseEvent(new ProductEvents.ProductReservedEvent(quantityToReserve));
+    var event = ProductReservedEvent.builder()
+      .aggregateId(this.sku)
+      .quantity(quantity)
+      .build();
+    applyNewChange(event);
   }
 
-  public void sellStock(int quantityToSell) {
-    if (quantityToSell <= 0) {
-      throw new IllegalArgumentException("Quantity to sell must be positive.");
+  public void sellProduct(int quantity) {
+    if (quantity > this.reservedQuantity) {
+      throw new InsufficientStockException("Not enough reserved stock to sell.");
     }
-    if (reservedQuantity < quantityToSell) {
-      throw new InsufficientStockException("Not enough reserved stock for SKU " + sku + " to sell. Requested: " +
-        quantityToSell + ", Reserved: " + reservedQuantity);
-    }
-    raiseEvent(new ProductEvents.ProductSoldEvent(quantityToSell));
+    var event = ProductSoldEvent.builder()
+      .aggregateId(this.sku)
+      .quantity(quantity)
+      .build();
+    applyNewChange(event);
   }
 
-  private void raiseEvent(ProductEvent event) {
-    apply(event);
-    uncommittedChanges.add(event);
+  // ---- Métodos privados para aplicar o estado ----
+  private void apply(ProductAddedEvent event) {
+    this.sku = event.getAggregateId();
+    this.name = event.getName();
+    this.color = event.getColor();
+    this.material = event.getMaterial();
+    this.availableQuantity += event.getQuantity();
   }
 
-  private void apply(ProductEvent event) {
-    log.debug("Applying event: {}", event.getClass().getSimpleName());
-    switch (event) {
-      case ProductEvents.ProductAddedToStockEvent e -> {
-        this.sku = e.sku();
-        this.name = e.name();
-        this.availableQuantity = e.quantity();
-      }
-      case ProductEvents.ProductReservedEvent e -> {
-        this.availableQuantity -= e.quantity();
-        this.reservedQuantity += e.quantity();
-      }
-      case ProductEvents.ProductSoldEvent e -> {
-        this.reservedQuantity -= e.quantity();
-        this.soldQuantity += e.quantity();
-      }
-      case ProductEvents.ProductReservationCancelledEvent e -> {
-        this.reservedQuantity -= e.quantity();
-        this.availableQuantity += e.quantity();
-      }
-    }
-    log.debug("State after event: available={}, reserved={}, sold={}",
-      availableQuantity, reservedQuantity, soldQuantity);
+  private void apply(ProductReservedEvent event) {
+    this.availableQuantity -= event.getQuantity();
+    this.reservedQuantity += event.getQuantity();
+  }
+
+  private void apply(ProductSoldEvent event) {
+    this.reservedQuantity -= event.getQuantity();
+    this.soldQuantity += event.getQuantity();
   }
 
 }

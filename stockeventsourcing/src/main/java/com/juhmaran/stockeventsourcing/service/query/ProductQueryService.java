@@ -1,12 +1,19 @@
 package com.juhmaran.stockeventsourcing.service.query;
 
+import com.juhmaran.stockeventsourcing.domain.event.Event;
+import com.juhmaran.stockeventsourcing.projection.model.ProductView;
+
+import java.util.List;
+
 /**
  * Created by Juliane Maran
  *
- * @since 13/07/2025
+ * @since 14/07/2025
  */
-public class ProductQueryService {
+public interface ProductQueryService {
 
-  // TODO: Implementar funcionalidades da classe ProductQueryService
+  ProductView getProductStock(String sku);
+
+  List<Event> getProductHistory(String sku);
 
 }
