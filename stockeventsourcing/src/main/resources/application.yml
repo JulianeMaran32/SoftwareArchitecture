@@ -3,3 +3,10 @@ server:
 spring:
   application:
     name: stockeventsourcing
+  profiles:
+    active:
+      - dev # Perfil ativo por padrão para desenvolvimento local
+
+  # Configura o Jackson para lidar com tipos polimórficos nos eventos
+  jackson:
+    default-property-inclusion: NON_NULL
