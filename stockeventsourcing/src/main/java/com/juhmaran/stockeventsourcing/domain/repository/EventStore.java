@@ -34,7 +34,7 @@ public class EventStore {
   private String eventType;
 
   @Lob
-  @Column(nullable = false, columnDefinition = "CLOB")
+  @Column(nullable = false, columnDefinition = "TEXT")
   private String eventData;
 
 }

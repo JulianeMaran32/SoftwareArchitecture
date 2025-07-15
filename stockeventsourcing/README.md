@@ -286,20 +286,82 @@ Você pode usar `curl` ou qualquer cliente REST para consultar o Elasticsearch n
 
 **Buscar todos os produtos:**
 
-```bash
-curl -X GET "http://localhost:9200/products/_search?pretty"
+```
+GET /products/_search?pretty
+```
+
+**Response 200 OK**
+
+```json
+{
+  "took": 3,
+  "timed_out": false,
+  "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 1,
+      "relation": "eq"
+    },
+    "max_score": 1,
+    "hits": [
+      {
+        "_index": "products",
+        "_id": "SHOE-001",
+        "_score": 1,
+        "_source": {
+          "_class": "com.juhmaran.stockeventsourcing.projection.model.ProductView",
+          "sku": "SHOE-001",
+          "name": "Classic Sneaker",
+          "color": "White",
+          "material": "Leather",
+          "availableQuantity": 100,
+          "reservedQuantity": 0,
+          "soldQuantity": 0
+        }
+      }
+    ]
+  }
+}
 ```
 
 **Buscar um produto específico pelo SKU:**
 
-```bash
-curl -X GET "http://localhost:9200/products/_doc/SHOE-001?pretty"
+```
+GET /products/_doc/SHOE-001?pretty
+```
+
+**Response 200 OK**
+
+```json
+{
+  "_index": "products",
+  "_id": "SHOE-001",
+  "_version": 1,
+  "_seq_no": 0,
+  "_primary_term": 1,
+  "found": true,
+  "_source": {
+    "_class": "com.juhmaran.stockeventsourcing.projection.model.ProductView",
+    "sku": "SHOE-001",
+    "name": "Classic Sneaker",
+    "color": "White",
+    "material": "Leather",
+    "availableQuantity": 100,
+    "reservedQuantity": 0,
+    "soldQuantity": 0
+  }
+}
 ```
 
 **Busca avançada (ex: todos os produtos da cor "White"):**
 
-```bash
-curl -X GET "http://localhost:9200/products/_search?pretty" -H 'Content-Type: application/json' -d'
+```
+GET /products/_search?pretty
 {
   "query": {
     "match": {
@@ -307,5 +369,56 @@ curl -X GET "http://localhost:9200/products/_search?pretty" -H 'Content-Type: ap
     }
   }
 }
-'
 ```
+
+**Response 200 OK**
+
+```json
+{
+  "took": 8,
+  "timed_out": false,
+  "_shards": {
+    "total": 1,
+    "successful": 1,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 1,
+      "relation": "eq"
+    },
+    "max_score": 0.2876821,
+    "hits": [
+      {
+        "_index": "products",
+        "_id": "SHOE-001",
+        "_score": 0.2876821,
+        "_source": {
+          "_class": "com.juhmaran.stockeventsourcing.projection.model.ProductView",
+          "sku": "SHOE-001",
+          "name": "Classic Sneaker",
+          "color": "White",
+          "material": "Leather",
+          "availableQuantity": 100,
+          "reservedQuantity": 0,
+          "soldQuantity": 0
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
+### Dockerfile
+
+* **Finalidade**
+    * Criar uma imagem Docker leve e segura para a aplicação Spring Boot, utilizando uma build multi-stage.
+* **Principais Pontos**
+    * A build multi-stage garante que as ferramentas de compilação (Maven) não sejam incluídas na imagem final,
+      resultando em uma imagem menor e mais segura.
+    * O `ENTRYPOINT` é genérico; o perfil Spring a ser ativado (`dev` ou `prod`) é injetado como uma variável de
+      ambiente pelo Docker Compose.
+
