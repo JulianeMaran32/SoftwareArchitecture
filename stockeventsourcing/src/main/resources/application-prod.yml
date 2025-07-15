@@ -1,17 +1,16 @@
-# Perfil de Produção
+# application-prod.yml
 spring:
-  # --- Event Store: PostgreSQL Database ---
   jpa:
     hibernate:
-      ddl-auto: validate # Em produção real, use um gerenciador de migração como Flyway/Liquibase
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   datasource:
-    url: jdbc:postgresql://postgres:5432/event_store # Conecta-se ao container 'postgres'
-    username: 'admin'
-    password: 'admin'
+    url: jdbc:postgresql://postgres:5432/eventstore # Usa o nome do serviço 'postgres'
+    username: user
+    password: 'password'
     driver-class-name: org.postgresql.Driver
-  # --- Read Model: Elasticsearch ---
+
   elasticsearch:
-    uris: http://elasticsearch:9200 # Conecta-se ao container 'elasticsearch'
+    uris: http://elasticsearch:9200 # Usa o nome do serviço 'elasticsearch'
