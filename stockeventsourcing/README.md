@@ -60,7 +60,7 @@ Este modo utiliza a pilha completa: **PostgreSQL** (Event Store) + **Elasticsear
 
 ```bash
 # Na raiz do projeto, execute:
-docker-compose up --build
+docker compose up --build
 ```
 
 Após a inicialização, os serviços estarão disponíveis nos seguintes endereços:
@@ -70,7 +70,7 @@ Após a inicialização, os serviços estarão disponíveis nos seguintes endere
 * **Documentação API (json)**: `http://localhost:8081/api-docs`
 * **Kibana**: `http://localhost:5601`
 * **Elasticsearch**: `http://localhost:9200`
-* **PostgreSQL**: `localhost:5432`
+* **PostgreSQL**: `http://localhost:5432`
 
 ### 2. Modo de Desenvolvimento
 
@@ -78,7 +78,7 @@ Este modo utiliza **H2 em memória** (Event Store), sendo mais leve para desenvo
 
 ```bash
 # Na raiz do projeto, execute:
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
 A aplicação e o Kibana estarão disponíveis nas mesmas portas. O PostgreSQL não será iniciado.
