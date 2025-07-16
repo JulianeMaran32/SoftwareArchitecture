@@ -66,6 +66,8 @@ docker-compose up --build
 Após a inicialização, os serviços estarão disponíveis nos seguintes endereços:
 
 * **API da Aplicação**: `http://localhost:8081`
+* **Swagger UI**: `http://localhost:8081/swagger-ui.html`
+* **Documentação API (json)**: `http://localhost:8081/api-docs`
 * **Kibana**: `http://localhost:5601`
 * **Elasticsearch**: `http://localhost:9200`
 * **PostgreSQL**: `localhost:5432`
@@ -422,3 +424,4 @@ GET /products/_search?pretty
     * O `ENTRYPOINT` é genérico; o perfil Spring a ser ativado (`dev` ou `prod`) é injetado como uma variável de
       ambiente pelo Docker Compose.
 
+---
