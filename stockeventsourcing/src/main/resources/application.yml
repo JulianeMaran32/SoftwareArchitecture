@@ -16,6 +16,16 @@ logging:
     com.juhmaran.stockeventsourcing: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql: TRACE
+    org.springframework: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - [%X{request_id}] - %msg%n"
+  file:
+    name: /app/logs/stock-app.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+      total-size-cap: 1GB
 
 management:
   endpoints:
@@ -24,6 +34,19 @@ management:
         include:
           - health
           - info
+          - metrics
   endpoint:
     health:
       show-details: ALWAYS
+
+springdoc:
+  # Interface gráfica do Swagger UI
+  swagger-ui:
+    path: /swagger-ui.html
+    version: OPENAPI_3_0
+    enabled: true
+  # Springdoc OpenAPI
+  api-docs:
+    path: /api-docs
+    version: OPENAPI_3_0
+    enabled: true
