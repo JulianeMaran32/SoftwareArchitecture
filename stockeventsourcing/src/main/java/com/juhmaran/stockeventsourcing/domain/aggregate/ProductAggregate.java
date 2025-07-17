@@ -7,15 +7,12 @@ import com.juhmaran.stockeventsourcing.domain.event.ProductSoldEvent;
 import com.juhmaran.stockeventsourcing.exception.InsufficientStockException;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by Juliane Maran
- *
- * @since 13/07/2025
- */
+@Slf4j
 @Getter
 @NoArgsConstructor
 public class ProductAggregate {
