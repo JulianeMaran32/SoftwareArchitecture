@@ -34,7 +34,7 @@ public class ProductCommandServiceImpl implements ProductCommandService {
   @Transactional
   public void addProduct(String sku, ProductRequest request) {
     if (!eventRepository.findByAggregateIdOrderByTimestampAsc(sku).isEmpty()) {
-      throw new ProductAlreadyExistsException("Product with SKU " + sku + " already exists.");
+      throw new ProductAlreadyExistsException("Produto com SKU " + sku + " já existe.");
     }
     var aggregate = new ProductAggregate();
     aggregate.addProduct(sku, request.name(), request.color(), request.material(), request.quantity());
@@ -60,7 +60,7 @@ public class ProductCommandServiceImpl implements ProductCommandService {
   private ProductAggregate loadAggregate(String sku) {
     List<EventStore> eventStores = eventRepository.findByAggregateIdOrderByTimestampAsc(sku);
     if (eventStores.isEmpty()) {
-      throw new AggregateNotFoundException("Product with SKU " + sku + " not found.");
+      throw new AggregateNotFoundException("Produto com SKU " + sku + " não encontrado.");
     }
     List<Event> history = eventStores.stream().map(this::deserializeEvent).toList();
     return new ProductAggregate(sku, history);
@@ -70,7 +70,7 @@ public class ProductCommandServiceImpl implements ProductCommandService {
     List<Event> newEvents = aggregate.getUncommittedEvents();
     newEvents.forEach(event -> {
       eventRepository.save(serializeEvent(event));
-      eventPublisher.publishEvent(event); // Publica para o read-side
+      eventPublisher.publishEvent(event);
     });
     newEvents.clear();
   }
@@ -84,7 +84,7 @@ public class ProductCommandServiceImpl implements ProductCommandService {
         .eventData(objectMapper.writeValueAsString(event))
         .build();
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Error serializing event", e);
+      throw new RuntimeException("Erro ao serializar o evento", e);
     }
   }
 
@@ -93,7 +93,7 @@ public class ProductCommandServiceImpl implements ProductCommandService {
       return (Event) objectMapper.readValue(eventStore.getEventData(),
         Class.forName("com.juhmaran.stockeventsourcing.domain.event" + eventStore.getEventType()));
     } catch (JsonProcessingException | ClassNotFoundException e) {
-      throw new RuntimeException("Error deserializing event", e);
+      throw new RuntimeException("Erro ao deserializer o evento", e);
     }
   }
 

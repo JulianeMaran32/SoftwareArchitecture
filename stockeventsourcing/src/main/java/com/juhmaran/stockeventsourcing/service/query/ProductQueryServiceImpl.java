@@ -13,11 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Created by Juliane Maran
- *
- * @since 14/07/2025
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,14 +25,14 @@ public class ProductQueryServiceImpl implements ProductQueryService {
   @Override
   public ProductView getProductStock(String sku) {
     return productViewRepository.findById(sku)
-      .orElseThrow(() -> new ProductNotFoundException("Product with SKU " + sku + " not found."));
+      .orElseThrow(() -> new ProductNotFoundException("Produto com SKU " + sku + " não encontrado."));
   }
 
   @Override
   public List<Event> getProductHistory(String sku) {
     var eventStores = eventRepository.findByAggregateIdOrderByTimestampAsc(sku);
     if (eventStores.isEmpty()) {
-      throw new ProductNotFoundException("No history found for product with SKU " + sku);
+      throw new ProductNotFoundException("Nenhum histórico encontrado para o produto com SKU " + sku);
     }
     return eventStores.stream()
       .map(eventStore -> {
@@ -46,7 +41,7 @@ public class ProductQueryServiceImpl implements ProductQueryService {
             eventStore.getEventData(),
             Class.forName("com.juhmaran.stockeventsourcing.domain.event." + eventStore.getEventType()));
         } catch (JsonProcessingException | ClassNotFoundException e) {
-          throw new RuntimeException("Error deserializing event history");
+          throw new RuntimeException("Erro ao deserializer o histórico de eventos");
         }
       }).toList();
   }
