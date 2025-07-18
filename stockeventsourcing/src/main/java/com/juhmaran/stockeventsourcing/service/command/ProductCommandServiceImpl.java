@@ -102,9 +102,8 @@ public class ProductCommandServiceImpl implements ProductCommandService {
 
   private Event deserializeEvent(EventStore eventStore) {
     try {
-      Class<?> eventClass = Class.forName("com.juhmaran.stockeventsourcing.domain.event." + eventStore.getEventType());
-      return (Event) objectMapper.readValue(eventStore.getEventData(), eventClass);
-    } catch (JsonProcessingException | ClassNotFoundException e) {
+      return objectMapper.readValue(eventStore.getEventData(), Event.class);
+    } catch (JsonProcessingException e) {
       log.error("Falha ao deserializar evento do tipo {} para o agregado {}", eventStore.getEventType(), eventStore.getAggregateId(), e);
       throw new EventDeserializationException("Erro ao deserializar o evento", e);
     }

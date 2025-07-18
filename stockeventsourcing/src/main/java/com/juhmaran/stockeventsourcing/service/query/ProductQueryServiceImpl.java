@@ -44,9 +44,8 @@ public class ProductQueryServiceImpl implements ProductQueryService {
     return eventStores.stream()
       .map(eventStore -> {
         try {
-          Class<?> eventClass = Class.forName("com.juhmaran.stockeventsourcing.domain.event." + eventStore.getEventType());
-          return (Event) objectMapper.readValue(eventStore.getEventData(), eventClass);
-        } catch (JsonProcessingException | ClassNotFoundException e) {
+          return objectMapper.readValue(eventStore.getEventData(), Event.class);
+        } catch (JsonProcessingException e) {
           log.error("Falha ao deserializar evento do histórico para o SKU: {}", sku, e);
           throw new EventDeserializationException("Erro ao deserializar o histórico de eventos", e);
         }

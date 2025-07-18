@@ -9,11 +9,6 @@ import lombok.experimental.SuperBuilder;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Created by Juliane Maran
- *
- * @since 13/07/2025
- */
 @Getter
 @SuperBuilder
 @NoArgsConstructor
