@@ -71,6 +71,7 @@ Após a inicialização, os serviços estarão disponíveis nos seguintes endere
 * **Kibana**: `http://localhost:5601`
 * **Elasticsearch**: `http://localhost:9200`
 * **PostgreSQL**: `http://localhost:5432`
+* **Actuator**: `http://localhost:8081/actuator`
 
 ### 2. Modo de Desenvolvimento
 
@@ -289,7 +290,6 @@ Você pode usar `curl` ou qualquer cliente REST para consultar o Elasticsearch n
 **Buscar todos os produtos:**
 
 ```
-GET /products/_search?pretty
 ```
 
 **Response 200 OK**
@@ -414,14 +414,10 @@ GET /products/_search?pretty
 
 ---
 
-### Dockerfile
+## Links de Referências
 
-* **Finalidade**
-    * Criar uma imagem Docker leve e segura para a aplicação Spring Boot, utilizando uma build multi-stage.
-* **Principais Pontos**
-    * A build multi-stage garante que as ferramentas de compilação (Maven) não sejam incluídas na imagem final,
-      resultando em uma imagem menor e mais segura.
-    * O `ENTRYPOINT` é genérico; o perfil Spring a ser ativado (`dev` ou `prod`) é injetado como uma variável de
-      ambiente pelo Docker Compose.
-
----
+* [CQRS (Command Query Responsibility Segregation) em uma Arquitetura de Microsserviços](https://medium.com/@marcelomg21/cqrs-command-query-responsibility-segregation-em-uma-arquitetura-de-micro-servi%C3%A7os-71dcb687a8a9)
+* [Domain-driven Design (DDD) em uma Arquitetura de Microsserviços](https://medium.com/@marcelomg21/domain-driven-design-ddd-em-uma-arquitetura-de-micro-servi%C3%A7os-cac52a90a40)
+* [Event-driven Architecture (EDA) em uma Arquitetura de Microsserviços](https://medium.com/@marcelomg21/event-driven-architecture-eda-em-uma-arquitetura-de-micro-servi%C3%A7os-1981614cdd45)
+* [Event-sourcing (ES) em uma Arquitetura de Microsserviços](https://medium.com/@marcelomg21/event-sourcing-es-em-uma-arquitetura-de-microsservi%C3%A7os-852f6ce04595)
+* [Elastic](https://www.elastic.co/)
