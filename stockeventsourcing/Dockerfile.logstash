@@ -1,0 +1,5 @@
+# Dockerfile.logstash
+FROM docker.elastic.co/logstash/logstash:8.14.0
+
+# Copia o nosso pipeline de configuração para o local correto dentro do container
+COPY pipeline/logstash.conf /usr/share/logstash/pipeline/
