@@ -11,4 +11,4 @@ spring:
     driver-class-name: org.h2.Driver
 
   elasticsearch:
-    uris: http://localhost:9200
+    uris: http://elasticsearch:9200

@@ -1,0 +1,313 @@
+openapi: 3.0.1
+info:
+  title: Stock Event Sourcing
+  description: |-
+    Aplicação desenvolvida em Java e Spring, utilizando Event Sourcing, para gerenciamento de produto.
+  termsOfService: https://example.com/terms
+  contact:
+    name: Juliane Maran
+    email: julianemaran@gmail.com
+    url: https://github.com/JulianeMaran32/SoftwareArchitecture
+  license:
+    name: Apache License 2.0
+    url: http://www.apache.org/licenses/
+  version: 1.0.1
+servers:
+  - url: http://localhost:{port}
+    description: 'Local Server'
+    variables:
+      port:
+        enum:
+          - '8081' # Local Server
+          - '5601' # Kibana
+          - '9200' # Elasticsearch
+          - '5432' # PostgreSLQ
+        default: '8081'
+tags:
+  - name: Product Query
+    description: Endpoints para consultar informações de produtos e seu histórico de eventos (operações de leitura).
+  - name: Product Command
+    description: Endpoints para criar e alterar o estado de produtos (operações de escrita).
+paths:
+  /products/{sku}/sell:
+    post:
+      tags:
+        - Product Command
+      summary: Vender uma quantidade de um produto
+      description: Registra a venda de uma quantidade de um produto, efetivamente removendo-a do estoque. A operação é processada de forma assíncrona.
+      operationId: sellProduct
+      parameters:
+        - name: sku
+          in: path
+          description: Identificador único do produto (Stock Keeping Unit).
+          required: true
+          schema:
+            type: string
+          example: SKU-001-XYZ
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockRequest'
+        required: true
+      responses:
+        '202':
+          description: Requisição aceita. O evento de venda de produto foi enviado para processamento.
+        '400':
+          description: Requisição inválida. Por exemplo, a quantidade para venda é zero ou negativa.
+        '404':
+          description: Produto não encontrado. O SKU informado não corresponde a nenhum produto existente.
+        '409':
+          description: Conflito de estado. Por exemplo, tentar vender uma quantidade maior que a disponível em estoque.
+        '422':
+          description: Entidade não processável. A requisição está bem formada, mas não pôde ser processada.
+        '500':
+          description: Erro interno no servidor.
+  /products/{sku}/reserve:
+    post:
+      tags:
+        - Product Command
+      summary: Reservar uma quantidade de um produto
+      description: Reserva uma quantidade específica de um produto existente, diminuindo o estoque disponível, mas ainda não o confirmando como vendido. A operação é processada de forma assíncrona.
+      operationId: reserveProduct
+      parameters:
+        - name: sku
+          in: path
+          description: Identificador único do produto (Stock Keeping Unit).
+          required: true
+          schema:
+            type: string
+          example: SKU-001-XYZ
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockRequest'
+        required: true
+      responses:
+        '202':
+          description: Requisição aceita. O evento de reserva de produto foi enviado para processamento.
+        '400':
+          description: Requisição inválida. Por exemplo, a quantidade para reserva é zero ou negativa.
+        '404':
+          description: Produto não encontrado. O SKU informado não corresponde a nenhum produto existente.
+        '409':
+          description: Conflito de estado. Por exemplo, tentar reservar uma quantidade maior que a disponível em estoque.
+        '422':
+          description: Entidade não processável. A requisição está bem formada, mas não pôde ser processada.
+        '500':
+          description: Erro interno no servidor.
+  /products/{sku}/add:
+    post:
+      tags:
+        - Product Command
+      summary: Adicionar um novo produto
+      description: Cria um novo produto no sistema com base no SKU e nos dados fornecidos. A operação é processada de forma assíncrona.
+      operationId: addProduct
+      parameters:
+        - name: sku
+          in: path
+          description: Identificador único do produto (Stock Keeping Unit).
+          required: true
+          schema:
+            type: string
+          example: SKU-001-XYZ
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+        required: true
+      responses:
+        '202':
+          description: Requisição aceita. O evento de criação do produto foi enviado para processamento.
+        '400':
+          description: Requisição inválida. Verifique os dados enviados no corpo da requisição.
+        '409':
+          description: Conflito. O produto com o SKU informado já existe no sistema.
+        '422':
+          description: Entidade não processável. A requisição está bem formada, mas não pôde ser processada devido a erros de negócio.
+        '500':
+          description: Erro interno no servidor.
+  /products/{sku}/stock:
+    get:
+      tags:
+        - Product Query
+      summary: Consultar o estoque de um produto
+      description: Retorna a visão atualizada do estoque de um produto, incluindo a quantidade total, reservada e disponível, com base na projeção dos eventos.
+      operationId: getProductStock
+      parameters:
+        - name: sku
+          in: path
+          description: Identificador único do produto (Stock Keeping Unit).
+          required: true
+          schema:
+            type: string
+          example: SKU-001-XYZ
+      responses:
+        '200':
+          description: Sucesso. A visão atual do estoque do produto foi retornada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductView'
+        '404':
+          description: Produto não encontrado. O SKU informado não corresponde a nenhum produto existente.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ProductView'
+        '500':
+          description: Erro interno no servidor.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ProductView'
+  /products/{sku}/history:
+    get:
+      tags:
+        - Product Query
+      summary: Consultar o histórico de eventos de um produto
+      description: Retorna a lista completa de todos os eventos (criação, reserva, venda, etc.) associados a um produto específico, em ordem cronológica.
+      operationId: getProductHistory
+      parameters:
+        - name: sku
+          in: path
+          description: Identificador único do produto (Stock Keeping Unit).
+          required: true
+          schema:
+            type: string
+          example: SKU-001-XYZ
+      responses:
+        '200':
+          description: Sucesso. A lista de eventos do produto foi retornada.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '404':
+          description: Produto não encontrado. O SKU informado não corresponde a nenhum produto existente.
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/ProductAddedEvent'
+                    - $ref: '#/components/schemas/ProductReservedEvent'
+                    - $ref: '#/components/schemas/ProductSoldEvent'
+        '500':
+          description: Erro interno no servidor.
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/ProductAddedEvent'
+                    - $ref: '#/components/schemas/ProductReservedEvent'
+                    - $ref: '#/components/schemas/ProductSoldEvent'
+components:
+  schemas:
+    StockRequest:
+      required:
+        - quantity
+      type: object
+      properties:
+        quantity:
+          minimum: 1
+          type: integer
+          format: int32
+    ProductRequest:
+      required:
+        - color
+        - material
+        - name
+        - quantity
+      type: object
+      properties:
+        name:
+          minLength: 1
+          type: string
+        color:
+          minLength: 1
+          type: string
+        material:
+          minLength: 1
+          type: string
+        quantity:
+          minimum: 1
+          type: integer
+          format: int32
+    ProductView:
+      type: object
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+        material:
+          type: string
+        availableQuantity:
+          type: integer
+          format: int32
+        reservedQuantity:
+          type: integer
+          format: int32
+        soldQuantity:
+          type: integer
+          format: int32
+    Event:
+      required:
+        - type
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        aggregateId:
+          type: string
+        type:
+          type: string
+      discriminator:
+        propertyName: type
+    ProductAddedEvent:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Event'
+        - type: object
+          properties:
+            name:
+              type: string
+            color:
+              type: string
+            material:
+              type: string
+            quantity:
+              type: integer
+              format: int32
+    ProductReservedEvent:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Event'
+        - type: object
+          properties:
+            quantity:
+              type: integer
+              format: int32
+    ProductSoldEvent:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Event'
+        - type: object
+          properties:
+            quantity:
+              type: integer
+              format: int32

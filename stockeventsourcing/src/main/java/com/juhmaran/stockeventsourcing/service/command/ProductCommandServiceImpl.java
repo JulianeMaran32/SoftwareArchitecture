@@ -9,19 +9,18 @@ import com.juhmaran.stockeventsourcing.domain.repository.EventStore;
 import com.juhmaran.stockeventsourcing.dto.ProductRequest;
 import com.juhmaran.stockeventsourcing.dto.StockRequest;
 import com.juhmaran.stockeventsourcing.exception.AggregateNotFoundException;
+import com.juhmaran.stockeventsourcing.exception.EventDeserializationException;
+import com.juhmaran.stockeventsourcing.exception.EventSerializationException;
 import com.juhmaran.stockeventsourcing.exception.ProductAlreadyExistsException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/**
- * Created by Juliane Maran
- *
- * @since 13/07/2025
- */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductCommandServiceImpl implements ProductCommandService {
@@ -33,44 +32,56 @@ public class ProductCommandServiceImpl implements ProductCommandService {
   @Override
   @Transactional
   public void addProduct(String sku, ProductRequest request) {
+    log.info("Iniciando processo de adição do produto com SKU: {}", sku);
     if (!eventRepository.findByAggregateIdOrderByTimestampAsc(sku).isEmpty()) {
-      throw new ProductAlreadyExistsException("Product with SKU " + sku + " already exists.");
+      log.warn("Tentativa de criar um produto com SKU já existente: {}", sku);
+      throw new ProductAlreadyExistsException("Produto com SKU " + sku + " já existe.");
     }
     var aggregate = new ProductAggregate();
     aggregate.addProduct(sku, request.name(), request.color(), request.material(), request.quantity());
     saveAndPublishEvents(aggregate);
+    log.info("Produto com SKU: {} adicionado com sucesso.", sku);
   }
 
   @Override
   @Transactional
   public void reserveProduct(String sku, StockRequest request) {
+    log.info("Iniciando processo de reserva de {} item(s) para o produto com SKU: {}", request.quantity(), sku);
     ProductAggregate aggregate = loadAggregate(sku);
     aggregate.reserveProduct(request.quantity());
     saveAndPublishEvents(aggregate);
+    log.info("Reserva de {} item(s) para o produto com SKU: {} realizada com sucesso.", request.quantity(), sku);
   }
 
   @Override
   @Transactional
   public void sellProduct(String sku, StockRequest request) {
+    log.info("Iniciando processo de venda de {} item(s) do produto com SKU: {}", request.quantity(), sku);
     ProductAggregate aggregate = loadAggregate(sku);
     aggregate.sellProduct(request.quantity());
     saveAndPublishEvents(aggregate);
+    log.info("Venda de {} item(s) do produto com SKU: {} realizada com sucesso.", request.quantity(), sku);
   }
 
   private ProductAggregate loadAggregate(String sku) {
+    log.debug("Carregando agregado para o SKU: {}", sku);
     List<EventStore> eventStores = eventRepository.findByAggregateIdOrderByTimestampAsc(sku);
     if (eventStores.isEmpty()) {
-      throw new AggregateNotFoundException("Product with SKU " + sku + " not found.");
+      log.warn("Nenhum evento encontrado para o agregado com SKU: {}", sku);
+      throw new AggregateNotFoundException("Produto com SKU " + sku + " não encontrado.");
     }
     List<Event> history = eventStores.stream().map(this::deserializeEvent).toList();
+    log.debug("Agregado para o SKU: {} reconstruído a partir de {} evento(s).", sku, history.size());
     return new ProductAggregate(sku, history);
   }
 
   private void saveAndPublishEvents(ProductAggregate aggregate) {
     List<Event> newEvents = aggregate.getUncommittedEvents();
+    log.debug("Salvando e publicando {} novo(s) evento(s) para o agregado SKU: {}", newEvents.size(), aggregate.getSku());
     newEvents.forEach(event -> {
-      eventRepository.save(serializeEvent(event));
-      eventPublisher.publishEvent(event); // Publica para o read-side
+      EventStore eventStore = serializeEvent(event);
+      eventRepository.save(eventStore);
+      eventPublisher.publishEvent(event);
     });
     newEvents.clear();
   }
@@ -84,16 +95,17 @@ public class ProductCommandServiceImpl implements ProductCommandService {
         .eventData(objectMapper.writeValueAsString(event))
         .build();
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Error serializing event", e);
+      log.error("Falha ao serializar evento do tipo {} para o agregado {}", event.getClass().getSimpleName(), event.getAggregateId(), e);
+      throw new EventSerializationException("Erro ao serializar o evento", e);
     }
   }
 
   private Event deserializeEvent(EventStore eventStore) {
     try {
-      return (Event) objectMapper.readValue(eventStore.getEventData(),
-        Class.forName("com.juhmaran.stockeventsourcing.domain.event" + eventStore.getEventType()));
-    } catch (JsonProcessingException | ClassNotFoundException e) {
-      throw new RuntimeException("Error deserializing event", e);
+      return objectMapper.readValue(eventStore.getEventData(), Event.class);
+    } catch (JsonProcessingException e) {
+      log.error("Falha ao deserializar evento do tipo {} para o agregado {}", eventStore.getEventType(), eventStore.getAggregateId(), e);
+      throw new EventDeserializationException("Erro ao deserializar o evento", e);
     }
   }
 
