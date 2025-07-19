@@ -1,423 +1,114 @@
 # Stock Event Sourcing
 
-Este projeto é uma aplicação para gerenciamento de estoque de produtos, desenvolvida como uma demonstração prática dos
-padrões arquiteturais **Event Sourcing** e **CQRS (Command Query Responsibility Segregation)**.
+[![Java](https://img.shields.io/badge/Java-21-blue.svg)](https://www.java.com)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3+-green.svg)](https://spring.io/projects/spring-boot)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com)
+[![License](https://img.shields.io/badge/License-Apache%202.0-yellow.svg)](https://opensource.org/licenses/Apache-2.0)
 
-## Descrição da Arquitetura
+Este projeto é uma API de gerenciamento de estoque que demonstra os padrões arquiteturais **Event Sourcing** e **CQRS**
+usando Java, Spring Boot, Docker, PostgreSQL e a Stack Elastic (Elasticsearch, Kibana, Logstash).
 
-O principal objetivo deste projeto é explorar uma arquitetura robusta e escalável, separando completamente as
-responsabilidades de escrita (comandos) e leitura (consultas).
-
-### Core Patterns
-
-* **Event Sourcing:** Em vez de armazenar o estado atual de um produto, a aplicação persiste uma sequência cronológica
-  de eventos imutáveis que descrevem cada alteração ocorrida (ex: `ProductAdded`, `ProductReserved`, `ProductSold`). O
-  estado de um produto pode ser reconstruído a qualquer momento, reproduzindo seus eventos históricos. Isso fornece uma
-  trilha de auditoria completa e poderosa.
-* **CQRS (Command Query Responsibility Segregation):** A aplicação possui dois modelos distintos:
-    1. **Write Model (Lado do Comando):** Responsável por receber comandos, validar regras de negócio complexas e gerar
-       eventos. O coração deste modelo é o `ProductAggregate` que garante a consistência das operações. Os eventos são
-       persistidos em um **Event Store**.
-    2. **Read Model (Lado da Consulta):** Responsável por fornecer dados otimizados para consulta. Um processo
-       assíncrono (Projeção) escuta os eventos gerados pelo Write Model e atualiza uma visão desnormalizada dos dados.
-       Esta visão (`ProductView`) é projetada para responder rapidamente às consultas da UI ou de outros serviços.
-
-### Fluxo de Dados
-
-1. Um cliente envia um comando para a API (ex: `Reservar Produto).
-2. O **Command Controller** direciona o comando para o **Command Service**.
-3. O serviço carrega o histórico de eventos do **Event Store** para reconstruir o estado atual do `ProductAggregate`.
-4. O `ProductAggregate` executa a lógica de negócio e, se for bem-sucedido, gera um novo evento (ex:
-   `ProductReservedEvent`).
-5. O novo evento é salvo no **Event Store** e publicado internamente na aplicação.
-6. Um **Projection Listener** captura o evento publicado.
-7. A projeção atualiza o **Read Model** (um documento no Elasticsearch) com as novas informações.
-8. Quando um cliente solicita dados (ex: `Consultar Estoque`), a consulta é direcionada ao **Query Controller**, que
-   busca a informação diretamente do **Read Model** otimizado, sem sobrecarregar o modelo de escrita.
-
-### Stack de Tecnologias
-
-| Responsabilidade          | Tecnologia Utilizada (`dev` profile) | Tecnologia Utilizada (`prod` profile) |
-|---------------------------|--------------------------------------|---------------------------------------|
-| **Linguagem / Framework** | Java 21 / Spring Boot 3.5.3          | Java 21 / Spring Boot 3.5.3           |
-| **Event Store (Write)**   | H2 Database (In-Memory)              | PostgreSQL                            |
-| **Read Model (Query)**    | Elasticsearch                        | Elasticsearch                         |
-| **Containerização**       | Docker / Docker Compose              | Docker / Docker Compose               |
-| **Visualização (Read)**   | Kibana                               | Kibana                                |
+> Para uma explicação detalhada da arquitetura, conceitos e fluxo de dados, por
+> favor, [consulte a Wiki do projeto](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki).
 
 ---
 
-## Como Executar o Projeto
+## Como Executar (com Docker)
 
 **Pré-requisitos:**
 
-* Docker e Docker Compose
-* Java 21 e Maven (apenas para execução local fora do Docker)
+* Docker
+* Docker Compose
 
-### 1. Modo de Produção (Recomendado)
+### 1. Iniciar o Ambiente
 
-Este modo utiliza a pilha completa: **PostgreSQL** (Event Store) + **Elasticsearch** (Read Model) + **Kibana**.
+Este comando irá construir e iniciar todos os serviços necessários: a aplicação, PostgreSQL, Elasticsearch, Kibana e
+Logstash.
 
 ```bash
 # Na raiz do projeto, execute:
-docker compose up --build
+docker compose up --build -d
 ```
+
+*(Use `docker-compose` se sua versão for mais antiga)*
+
+### 2. Serviços Disponíveis
 
 Após a inicialização, os serviços estarão disponíveis nos seguintes endereços:
 
-* **API da Aplicação**: `http://localhost:8081`
-* **Swagger UI**: `http://localhost:8081/swagger-ui.html`
-* **Documentação API (json)**: `http://localhost:8081/api-docs`
-* **Kibana**: `http://localhost:5601`
-* **Elasticsearch**: `http://localhost:9200`
-* **PostgreSQL**: `http://localhost:5432`
-* **Actuator**: `http://localhost:8081/actuator`
+| Serviço                   | URL                                     | Descrição                                      |
+|:--------------------------|:----------------------------------------|:-----------------------------------------------|
+| API de Estoque            | `http://localhost:8081`                 | Endpoint principal da aplicação.               |
+| Swagger UI (Documentação) | `http://localhost:8081/swagger-ui.html` | Interface para explorar e testar os endpoints. |
+| Kibana (Logs e Dados)     | `http://localhost:5601`                 | Visualize os dados de projeção e os logs.      |
+| Elasticsearch             | `http://localhost:9200`                 | Datastore para projeções (read model) e logs.  |
+| PostgreSQL                | `http://localhost:5432`                 | Datastore para o Event Store (write model).    |
+| Actuator                  | `http://localhost:8081/actuator`        | Endpoints de monitoramento da aplicação.       |
 
-### 2. Modo de Desenvolvimento
+### Parar o Ambiente
 
-Este modo utiliza **H2 em memória** (Event Store), sendo mais leve para desenvolvimento.
+Para parar todos os containers, execute:
 
-```bash
-# Na raiz do projeto, execute:
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-```
-
-A aplicação e o Kibana estarão disponíveis nas mesmas portas. O PostgreSQL não será iniciado.
-
-## Exemplos de Uso (Postman Collection)
-
-Você pode importar a coleção abaixo no Postman para testar a API facilmente.
-
-[![Run in Postman](https://run.pstmn.io/button.svg)](https://god.postman.co/run-collection/9f5c2a1b948f936c5352?action=collection%2Fimport)
-
-<details>
-<summary>Ou copie o JSON da coleção aqui</summary>
-
-```json
-{
-  "info": {
-    "_postman_id": "f4e1f72d-1234-5678-abcd-c3a9f0d4b2e1",
-    "name": "Stock Event Sourcing",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "Commands",
-      "item": [
-        {
-          "name": "1. Add Product",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Classic Sneaker\",\n  \"color\": \"White\",\n  \"material\": \"Leather\",\n  \"quantity\": 100\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "http://localhost:8081/api/v1/products/SHOE-001/add",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8081",
-              "path": [
-                "api",
-                "v1",
-                "products",
-                "SHOE-001",
-                "add"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "2. Reserve Product",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"quantity\": 10\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "http://localhost:8081/api/v1/products/SHOE-001/reserve",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8081",
-              "path": [
-                "api",
-                "v1",
-                "products",
-                "SHOE-001",
-                "reserve"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "3. Sell Product",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"quantity\": 7\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "http://localhost:8081/api/v1/products/SHOE-001/sell",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8081",
-              "path": [
-                "api",
-                "v1",
-                "products",
-                "SHOE-001",
-                "sell"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Queries",
-      "item": [
-        {
-          "name": "Get Product Stock",
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          },
-          "request": {
-            "method": "GET",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "http://localhost:8081/api/v1/products/SHOE-001/stock",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8081",
-              "path": [
-                "api",
-                "v1",
-                "products",
-                "SHOE-001",
-                "stock"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Product History",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8081/api/v1/products/SHOE-001/history",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8081",
-              "path": [
-                "api",
-                "v1",
-                "products",
-                "SHOE-001",
-                "history"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    }
-  ]
-}
-```
-
-</details>
-
-## Explorando o Read Model (Elasticsearch)
-
-Você pode consultar o Read Model diretamente no Elasticsearch ou através do Kibana.
-
-### 1. Configurar o Kibana
-
-1. Acesse `http://localhost:5601`.
-2. No menu, vá para **Management > Stack Management**.
-3. Clique em **Data Views** e depois em **Create data view**.
-4. Use `products` como o **Index pattern** e salve.
-5. Agora, na seção **Discover**, você pode explorar visualmente todos os dados do estoque.
-
-### 2. Consultas Diretas no Elasticsearch
-
-Você pode usar `curl` ou qualquer cliente REST para consultar o Elasticsearch na porta `9200`.
-
-**Buscar todos os produtos:**
-
-```
-```
-
-**Response 200 OK**
-
-```json
-{
-  "took": 3,
-  "timed_out": false,
-  "_shards": {
-    "total": 1,
-    "successful": 1,
-    "skipped": 0,
-    "failed": 0
-  },
-  "hits": {
-    "total": {
-      "value": 1,
-      "relation": "eq"
-    },
-    "max_score": 1,
-    "hits": [
-      {
-        "_index": "products",
-        "_id": "SHOE-001",
-        "_score": 1,
-        "_source": {
-          "_class": "com.juhmaran.stockeventsourcing.projection.model.ProductView",
-          "sku": "SHOE-001",
-          "name": "Classic Sneaker",
-          "color": "White",
-          "material": "Leather",
-          "availableQuantity": 100,
-          "reservedQuantity": 0,
-          "soldQuantity": 0
-        }
-      }
-    ]
-  }
-}
-```
-
-**Buscar um produto específico pelo SKU:**
-
-```
-GET /products/_doc/SHOE-001?pretty
-```
-
-**Response 200 OK**
-
-```json
-{
-  "_index": "products",
-  "_id": "SHOE-001",
-  "_version": 1,
-  "_seq_no": 0,
-  "_primary_term": 1,
-  "found": true,
-  "_source": {
-    "_class": "com.juhmaran.stockeventsourcing.projection.model.ProductView",
-    "sku": "SHOE-001",
-    "name": "Classic Sneaker",
-    "color": "White",
-    "material": "Leather",
-    "availableQuantity": 100,
-    "reservedQuantity": 0,
-    "soldQuantity": 0
-  }
-}
-```
-
-**Busca avançada (ex: todos os produtos da cor "White"):**
-
-```
-GET /products/_search?pretty
-{
-  "query": {
-    "match": {
-      "color": "White"
-    }
-  }
-}
-```
-
-**Response 200 OK**
-
-```json
-{
-  "took": 8,
-  "timed_out": false,
-  "_shards": {
-    "total": 1,
-    "successful": 1,
-    "skipped": 0,
-    "failed": 0
-  },
-  "hits": {
-    "total": {
-      "value": 1,
-      "relation": "eq"
-    },
-    "max_score": 0.2876821,
-    "hits": [
-      {
-        "_index": "products",
-        "_id": "SHOE-001",
-        "_score": 0.2876821,
-        "_source": {
-          "_class": "com.juhmaran.stockeventsourcing.projection.model.ProductView",
-          "sku": "SHOE-001",
-          "name": "Classic Sneaker",
-          "color": "White",
-          "material": "Leather",
-          "availableQuantity": 100,
-          "reservedQuantity": 0,
-          "soldQuantity": 0
-        }
-      }
-    ]
-  }
-}
+```shell
+docker compose down
 ```
 
 ---
 
-## Links de Referências
+## Testando a API Usando a Coleção do Postman
 
-* [CQRS (Command Query Responsibility Segregation) em uma Arquitetura de Microsserviços](https://medium.com/@marcelomg21/cqrs-command-query-responsibility-segregation-em-uma-arquitetura-de-micro-servi%C3%A7os-71dcb687a8a9)
-* [Domain-driven Design (DDD) em uma Arquitetura de Microsserviços](https://medium.com/@marcelomg21/domain-driven-design-ddd-em-uma-arquitetura-de-micro-servi%C3%A7os-cac52a90a40)
-* [Event-driven Architecture (EDA) em uma Arquitetura de Microsserviços](https://medium.com/@marcelomg21/event-driven-architecture-eda-em-uma-arquitetura-de-micro-servi%C3%A7os-1981614cdd45)
-* [Event-sourcing (ES) em uma Arquitetura de Microsserviços](https://medium.com/@marcelomg21/event-sourcing-es-em-uma-arquitetura-de-microsservi%C3%A7os-852f6ce04595)
-* [Elastic](https://www.elastic.co/)
+A maneira mais fácil de interagir com a API é usando a nossa coleção pré-configurada do Postman.
+
+<a href="https://god.postman.co/run-collection/9f5c2a1b948f936c5352?action=collection%2Fimport" target="_blank">
+    <img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">
+</a>
+
+### Usando `curl` (Exemplos)
+
+**1. Adicionar um novo produto:**
+
+```bash
+curl -X POST "http://localhost:8081/products/SKU-TSHIRT-01/add" \
+-H "Content-Type: application/json" \
+-d '{
+  "name": "Camiseta Algodão Premium",
+  "color": "Azul Marinho",
+  "material": "Algodão Pima",
+  "quantity": 150
+}'
+```
+
+**2. Consultar o estoque do produto:**
+
+```bash
+curl http://localhost:8081/products/SKU-TSHIRT-01/stock
+```
+
+**3. Consultar o histórico de eventos:**
+
+```bash
+curl http://localhost:8081/products/SKU-TSHIRT-01/history
+```
+
+---
+
+## Documentação e Scripts
+
+Toda a documentação detalhada, guias de configuração e scripts úteis foram movidos para a Wiki do projeto para manter
+este README limpo.
+
+| Links                                                                                                                                     | Descrição                                               |
+|:------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------|
+| [Wiki Home](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki)                                                                  | Visão geral e links.                                    |
+| [Explicação da Arquitetura](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki/1.-Explica%C3%A7%C3%A3o-da-Arquitetura)           | Detalhes sobre CQRS, Event Sourcing e o fluxo de dados. |
+| [Guia de Configuração do Kibana](https://github.com/JulianeMaran32/SoftwareArchitecture/wiki/2.-Guia-de-Configura%C3%A7%C3%A3o-do-Kibana) | Passo a passo para visualizar os dados.                 | 
+| [Scripts SQL](https://github.com/JulianeMaran32/SoftwareArchitecture/tree/main/database-scripts/postgres)                                 | para inspecionar o Event Store no PostgreSQL.           |
+| [Scripts para Kibana Dev Tools](https://github.com/JulianeMaran32/SoftwareArchitecture/tree/main/kibana-scripts)                          | Queries para explorar os dados no Elasticsearch.        |
+
+---
+
+## 📜 Licença
+
+Este projeto está licenciado sob a Licença Apache 2.0. Veja o arquivo [LICENSE](./../LICENSE) para mais detalhes.
+
+---
