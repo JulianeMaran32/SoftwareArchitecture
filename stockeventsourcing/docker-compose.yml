@@ -2,6 +2,7 @@
 version: '3.8'
 
 services:
+  # Elasticsearch: Armazena projeções e logs
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
     container_name: elasticsearch
@@ -16,11 +17,12 @@ services:
     networks:
       - stock-net
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
+      test: ["CMD-SHELL", "curl -s --fail http://localhost:9200/_cluster/health?wait_for_status=yellow || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
+  # Kibana: Visualização dos dados do Elasticsearch
   kibana:
     image: docker.elastic.co/kibana/kibana:8.14.0
     container_name: kibana
@@ -34,6 +36,22 @@ services:
     networks:
       - stock-net
 
+  # Logstash: Coleta, processa e envia logs para o Elasticsearch
+  logstash:
+    build:
+      context: .
+      dockerfile: Dockerfile.logstash
+    container_name: logstash
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      # Monta o mesmo volume de logs da aplicação, mas como somente leitura
+      - ./logs:/usr/share/logstash/app-logs:ro
+    networks:
+      - stock-net
+
+  # PostgreSQL: Nosso Event Store
   postgres:
     image: postgres:16
     container_name: postgres_db
@@ -47,9 +65,15 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - stock-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d eventstore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Sua aplicação Spring Boot
   stock-app:
-    build: .
+    build: . # Usa o Dockerfile na raiz do projeto
     container_name: stock_app
     ports:
       - "8081:8081"
@@ -57,10 +81,15 @@ services:
       elasticsearch:
         condition: service_healthy
       postgres:
-        condition: service_started
+        condition: service_healthy # Espera o Postgres estar saudável
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
+      # Use 'prod' para conectar no Postgres. Use 'dev' para H2.
+      - SPRING_PROFILES_ACTIVE=prod
+      # Garante que a app se conecte aos containers pelos nomes de serviço
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/eventstore
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
     volumes:
+      # Mapeia o diretório de logs para o host, para o Logstash poder acessá-lo
       - ./logs:/app/logs
     networks:
       - stock-net

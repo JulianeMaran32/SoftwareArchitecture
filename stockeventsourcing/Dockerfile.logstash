@@ -1,0 +1,5 @@
+# Dockerfile.logstash
+FROM docker.elastic.co/logstash/logstash:8.14.0
+
+# Copia nosso pipeline personalizado para dentro da imagem do Logstash.
+COPY pipeline/logstash.conf /usr/share/logstash/pipeline/
