@@ -1,0 +1,75 @@
+# Arquivo: 02_application_logs.kql
+# Descrição: Queries para explorar os logs da aplicação no índice 'stockapp-logs-*'.
+# Instruções: Copie e cole este conteúdo na aba "Dev Tools" do Kibana
+#             e execute cada bloco de requisição separadamente.
+
+# ==============================================================================
+# VER OS LOGS MAIS RECENTES
+# ==============================================================================
+# Busca os 10 logs mais recentes, ordenados por timestamp.
+GET stockapp-logs-*/_search
+{
+  "size": 10,
+  "sort": [
+    {
+      "@timestamp": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+
+
+# ==============================================================================
+# FILTRAR LOGS POR NÍVEL (ex: ERROR)
+# ==============================================================================
+# Muito útil para encontrar problemas rapidamente.
+# Troque "ERROR" por "WARN", "INFO", etc.
+GET stockapp-logs-*/_search
+{
+  "query": {
+    "match": {
+      "level": "ERROR"
+    }
+  }
+}
+
+
+# ==============================================================================
+# FILTRAR LOGS RELACIONADOS A UM SKU ESPECÍFICO
+# ==============================================================================
+# Busca em toda a mensagem de log pela string do SKU.
+GET stockapp-logs-*/_search
+{
+  "query": {
+    "match_phrase": {
+      "log_message": "SKU-TSHIRT-01"
+    }
+  }
+}
+
+
+# ==============================================================================
+# FILTRAR LOGS DE UMA CLASSE JAVA ESPECÍFICA
+# ==============================================================================
+# Útil para depurar o comportamento de um serviço ou componente específico.
+GET stockapp-logs-*/_search
+{
+  "query": {
+    "match": {
+      "class": "ProductCommandServiceImpl"
+    }
+  },
+  "sort": [
+    {
+      "@timestamp": "desc"
+    }
+  ]
+}
+
+
+# ==============================================================================
+# DELETAR TODOS OS ÍNDICES DE LOG (CUIDADO!)
+# ==============================================================================
+# Útil para limpar o ambiente de desenvolvimento.
+# DELETE stockapp-logs-*

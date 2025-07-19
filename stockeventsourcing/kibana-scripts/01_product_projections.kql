@@ -1,0 +1,44 @@
+# Arquivo: 01_product_projections.kql
+# Descrição: Queries para interagir com o índice 'products' (projeções/read models).
+# Instruções: Copie e cole este conteúdo na aba "Dev Tools" do Kibana
+#             e execute cada bloco de requisição separadamente.
+
+# ==============================================================================
+# CONSULTAR A PROJEÇÃO DE UM PRODUTO ESPECÍFICO
+# ==============================================================================
+# Busca o documento pelo seu ID (que é o SKU).
+# Substitua 'SKU-TSHIRT-01' pelo ID do produto que você criou.
+GET products/_doc/SKU-TSHIRT-01
+
+
+# ==============================================================================
+# BUSCAR TODOS OS PRODUTOS
+# ==============================================================================
+# Retorna os 10 primeiros produtos no índice.
+GET products/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+
+# ==============================================================================
+# BUSCAR PRODUTOS POR COR
+# ==============================================================================
+# 'color' é um campo do tipo 'keyword', então a busca é por correspondência exata.
+GET products/_search
+{
+  "query": {
+    "term": {
+      "color": "Azul Marinho"
+    }
+  }
+}
+
+# ==============================================================================
+# DELETAR O ÍNDICE 'products' (CUIDADO!)
+# ==============================================================================
+# Útil durante o desenvolvimento para limpar tudo e começar de novo.
+# A aplicação irá recriar o índice na próxima vez que salvar uma projeção.
+# DELETE products
